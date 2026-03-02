@@ -11,7 +11,7 @@ import {
   PieChart, Pie, Cell, RadarChart, PolarGrid, PolarAngleAxis, Radar
 } from 'recharts';
 
-const API_URL = 'http://localhost:8000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 interface FaceAnalysis {
   id: number; is_fake: boolean; spatial: number; spectral: number; texture: number; heatmap: string; fourier: string; position: { x: number; y: number; w: number; h: number };
