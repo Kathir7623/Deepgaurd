@@ -67,17 +67,25 @@ export default function App() {
     setIsLoadingAuth(true); setError(null);
     try {
       if (isAuthMode === 'register') {
-        await axios.post(`${API_URL}/register`, { username, password });
-        setIsAuthMode('login'); addLog("Neural Identity Registered.");
+        const res = await axios.post(`${API_URL}/register`, { username, password });
+        setIsAuthMode('login');
+        alert("Account Virtualized. Please authenticate.");
       } else {
-        const formData = new FormData();
-        formData.append('username', username);
-        formData.append('password', password);
-        const res = await axios.post(`${API_URL}/token`, formData);
+        const params = new URLSearchParams();
+        params.append('username', username);
+        params.append('password', password);
+        const res = await axios.post(`${API_URL}/token`, params, {
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        });
         localStorage.setItem('token', res.data.access_token);
         setToken(res.data.access_token);
+        console.log("EXA Handshake Successful.");
       }
-    } catch (err: any) { setError(err.response?.data?.detail || 'Handshake Denied'); }
+    } catch (err: any) {
+      console.error("Auth Protocol Error:", err.response?.data || err.message);
+      const detail = err.response?.data?.detail;
+      setError(typeof detail === 'string' ? detail : 'Handshake Denied by System');
+    }
     finally { setIsLoadingAuth(false); }
   };
 

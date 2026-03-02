@@ -30,16 +30,24 @@ from skimage.feature import local_binary_pattern
 # ---------------------------------------------------------
 # AUTH & SECURITY (EXA-CYBER v8.0)
 # ---------------------------------------------------------
+import bcrypt
 SECRET_KEY = "DEEPGUARD_99_EXA_CYBER_2026"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 480 # 8-hour shift
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def hash_password(password: str) -> str:
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+def verify_password(password: str, hashed: str) -> bool:
+    return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 # ---------------------------------------------------------
 # DB ARCHITECTURE (SQLite v8.0 PRO)
 # ---------------------------------------------------------
-DATABASE_URL = "sqlite:///./deepguard_v8.db"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATABASE_URL = f"sqlite:///{os.path.join(BASE_DIR, 'deepguard_v8.db')}"
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
@@ -210,13 +218,13 @@ for d in DIRS: os.makedirs(d, exist_ok=True)
 @app.post("/register")
 async def register(u: UserCreate, db: Session = Depends(get_db)):
     if db.query(User).filter(User.username == u.username).first(): raise HTTPException(400, "Alias Taken")
-    user = User(username=u.username, hashed_password=pwd_context.hash(u.password))
+    user = User(username=u.username, hashed_password=hash_password(u.password))
     db.add(user); db.commit(); return {"status": "INITIALIZED"}
 
 @app.post("/token")
 async def login(f: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == f.username).first()
-    if not user or not pwd_context.verify(f.password, user.hashed_password): raise HTTPException(401, "DENIED")
+    if not user or not verify_password(f.password, user.hashed_password): raise HTTPException(401, "DENIED")
     return {"access_token": create_token({"sub": user.username}), "token_type": "bearer"}
 
 @app.post("/analyze", response_model=ForensicResult)
@@ -339,7 +347,7 @@ async def startup_event():
         admin = db.query(User).filter(User.username == "admin").first()
         if not admin:
             # Create default admin user
-            hashed_pw = pwd_context.hash("admin123")
+            hashed_pw = hash_password("admin123")
             db_admin = User(username="admin", hashed_password=hashed_pw)
             db.add(db_admin)
             db.commit()
