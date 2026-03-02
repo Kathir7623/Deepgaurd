@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import {
   Upload, ShieldCheck, ShieldAlert, Activity, RefreshCw, Database, AlertTriangle,
-  LayoutDashboard, History, LogOut, TrendingUp, Target, CheckCircle2, Lock, User,
+  LayoutDashboard, History, LogOut, TrendingUp, Target, Lock, User,
   Layers, Zap, Hexagon, Globe, Binary, Download, FileDigit, Fingerprint, Microscope, Dna
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
