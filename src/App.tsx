@@ -67,7 +67,7 @@ export default function App() {
     setIsLoadingAuth(true); setError(null);
     try {
       if (isAuthMode === 'register') {
-        const res = await axios.post(`${API_URL}/register`, { username, password });
+        await axios.post(`${API_URL}/register`, { username, password });
         setIsAuthMode('login');
         alert("Account Virtualized. Please authenticate.");
       } else {
@@ -179,13 +179,13 @@ export default function App() {
               <div className="space-y-3">
                 <div className="relative">
                   <User className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-600" />
-                  <input value={username} onChange={e => setUsername(e.target.value)} type="text" className="w-full bg-white/[0.03] border border-white/[0.08] rounded-3xl py-6 pl-16 pr-6 focus:border-indigo-500/50 outline-none transition-all font-black text-xs tracking-widest text-white uppercase" placeholder="NEURAL_ALIAS" required />
+                  <input value={username} onChange={e => setUsername(e.target.value)} type="text" className="w-full bg-white/[0.03] border border-white/[0.08] rounded-3xl py-6 pl-16 pr-6 focus:border-indigo-500/50 outline-none transition-all font-black text-xs tracking-widest text-white" placeholder="NEURAL_ALIAS" required />
                 </div>
               </div>
               <div className="space-y-3">
                 <div className="relative">
                   <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-600" />
-                  <input value={password} onChange={e => setPassword(e.target.value)} type="password" className="w-full bg-white/[0.03] border border-white/[0.08] rounded-3xl py-6 pl-16 pr-6 focus:border-indigo-500/50 outline-none transition-all font-black text-xs tracking-widest text-white uppercase" placeholder="DECRYPT_KEY" required />
+                  <input value={password} onChange={e => setPassword(e.target.value)} type="password" className="w-full bg-white/[0.03] border border-white/[0.08] rounded-3xl py-6 pl-16 pr-6 focus:border-indigo-500/50 outline-none transition-all font-black text-xs tracking-widest text-white" placeholder="DECRYPT_KEY" required />
                 </div>
               </div>
 
