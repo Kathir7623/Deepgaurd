@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --primary: #6366f1;
+    --secondary: #ec4899;
+    --background: #0f172a;
+  }
+
+  body {
+    @apply m-0 p-0 font-sans bg-[#0f172a] text-white min-h-screen;
+    background-color: var(--background);
+  }
+}
+
+@layer components {
+  .glass {
+    @apply bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl;
+  }
+
+  .glow {
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.2);
+  }
+
+  .gradient-text {
+    @apply bg-gradient-to-r from-indigo-400 to-pink-500 bg-clip-text text-transparent;
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
