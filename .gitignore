@@ -10,7 +10,7 @@ ENV/
 # Databases
 *.db
 
-# Forensic Assets (Sensitive/Temporary)
+# Forensic Assets (Sensitive/Temporary Backend)
 backend/uploads/*
 backend/reports/*
 backend/tmp_img/*
@@ -18,10 +18,10 @@ backend/tmp_img/*
 !backend/reports/.gitkeep
 !backend/tmp_img/.gitkeep
 
-# Node.js
+# Node.js / React (Root)
 node_modules/
-frontend/dist/
-frontend/build/
+dist/
+build/
 .eslintcache
 
 # Logs

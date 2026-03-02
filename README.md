@@ -14,17 +14,16 @@ Industrial-grade Deepfake Detection & Forensic Suite. High-precision tri-modal a
 - **Database**: SQLite (SQLAlchemy ORM).
 
 ## 🚀 Quick Execution
-1. **Backend**:
+1. **Frontend (React)**:
+   ```bash
+   npm install
+   npm run dev
+   ```
+2. **Backend (FastAPI)**:
    ```bash
    cd backend
    pip install -r requirements.txt
    python main.py
-   ```
-2. **Frontend**:
-   ```bash
-   cd frontend
-   npm install
-   npm run dev
    ```
 
 ## 🔒 Forensic Auth
