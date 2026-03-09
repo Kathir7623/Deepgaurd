@@ -2,8 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import {
   Upload, ShieldCheck, ShieldAlert, Activity, RefreshCw, Database, AlertTriangle,
-  LayoutDashboard, History, LogOut, TrendingUp, Target, Lock, User,
-  Layers, Zap, Hexagon, Globe, Binary, Download, FileDigit, Fingerprint, Microscope, Dna
+  LayoutDashboard, History, LogOut, TrendingUp, Target,
+  Layers, Zap, Globe, Binary, Download, FileDigit, Fingerprint, Microscope, Dna
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -22,11 +22,8 @@ interface ForensicResult {
 }
 
 export default function App() {
-  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+  const [token, setToken] = useState<string | null>("BYPASS_AUTH");
   const [isAuthMode, setIsAuthMode] = useState<'login' | 'register'>('login');
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [isLoadingAuth, setIsLoadingAuth] = useState(false);
 
   const [view, setView] = useState<'overview' | 'scanner' | 'history' | 'tech'>('overview');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -62,34 +59,8 @@ export default function App() {
 
   const addLog = (msg: string) => setLogs(prev => [...prev.slice(-4), msg]);
 
-  const handleAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoadingAuth(true); setError(null);
-    try {
-      if (isAuthMode === 'register') {
-        await axios.post(`${API_URL}/register`, { username, password });
-        setIsAuthMode('login');
-        alert("Account Virtualized. Please authenticate.");
-      } else {
-        const params = new URLSearchParams();
-        params.append('username', username);
-        params.append('password', password);
-        const res = await axios.post(`${API_URL}/token`, params, {
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-        });
-        localStorage.setItem('token', res.data.access_token);
-        setToken(res.data.access_token);
-        console.log("EXA Handshake Successful.");
-      }
-    } catch (err: any) {
-      console.error("Auth Protocol Error:", err.response?.data || err.message);
-      const detail = err.response?.data?.detail;
-      setError(typeof detail === 'string' ? detail : 'Handshake Denied by System');
-    }
-    finally { setIsLoadingAuth(false); }
-  };
 
-  const handleLogout = () => { localStorage.removeItem('token'); setToken(null); setView('overview'); };
+  const handleLogout = () => { setToken(null); setView('overview'); };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -130,77 +101,6 @@ export default function App() {
   };
 
   // Auth View
-  if (!token) {
-    return (
-      <div className="min-h-screen bg-[#020308] flex items-center justify-center p-6 selection:bg-indigo-500/30 overflow-hidden">
-        <div className="fixed inset-0 pointer-events-none z-0">
-          <div className="absolute top-[-20%] left-[-10%] w-[1000px] h-[1000px] bg-indigo-600/[0.03] blur-[200px] rounded-full animate-pulse" />
-          <div className="absolute bottom-[-20%] right-[-10%] w-[1000px] h-[1000px] bg-red-600/[0.03] blur-[200px] rounded-full" />
-        </div>
-
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-lg z-10">
-          <div className="text-center mb-12 space-y-6">
-            <div className="inline-flex p-5 bg-indigo-600 rounded-[2.5rem] shadow-[0_0_60px_rgba(99,102,241,0.4)] mb-2 group cursor-pointer">
-              <Hexagon className="w-12 h-12 text-white group-hover:rotate-180 transition-transform duration-1000" />
-            </div>
-            <h1 className="text-6xl font-black tracking-tighter text-white italic scale-y-110">DEEPGUARD <span className="text-indigo-500">V8.0</span></h1>
-            <p className="text-gray-600 font-bold uppercase tracking-[10px] text-[8px] opacity-70">EXA-CYBER FORENSIC ARCHITECTURE</p>
-            {isAuthMode === 'login' && (
-              <div className="mt-4 px-6 py-2 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl text-indigo-400 text-[10px] font-black tracking-widest uppercase inline-block">
-                AUTH_KEY: Demo / Demo123
-              </div>
-            )}
-          </div>
-
-          <div className="p-10 rounded-[4rem] bg-white/[0.02] backdrop-blur-[100px] border border-white/[0.05] shadow-[0_0_100px_rgba(0,0,0,0.5)] relative overflow-hidden group">
-            <div className="absolute -top-20 -right-20 opacity-[0.02] group-hover:opacity-[0.05] transition-opacity duration-1000"><Database className="w-96 h-96" /></div>
-
-            <div className="flex bg-white/[0.05] p-1.5 rounded-3xl mb-10 relative">
-              {['login', 'register'].map(m => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => setIsAuthMode(m as any)}
-                  className={`flex-1 py-4 rounded-[1.25rem] text-[10px] font-black uppercase tracking-[4px] transition-colors duration-500 relative z-10 ${isAuthMode === m ? 'text-white' : 'text-gray-500 hover:text-white'}`}
-                >
-                  {isAuthMode === m && (
-                    <motion.div
-                      layoutId="activeAuthTab"
-                      className="absolute inset-0 bg-indigo-600 rounded-[1.25rem] shadow-xl shadow-indigo-600/30 -z-10"
-                      transition={{ type: "spring", bounce: 0.1, duration: 0.6 }}
-                    />
-                  )}
-                  {m}
-                </button>
-              ))}
-            </div>
-
-            <form onSubmit={handleAuth} className="space-y-8">
-              <div className="space-y-3">
-                <div className="relative">
-                  <User className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-600" />
-                  <input value={username} onChange={e => setUsername(e.target.value)} type="text" className="w-full bg-white/[0.03] border border-white/[0.08] rounded-3xl py-6 pl-16 pr-6 focus:border-indigo-500/50 outline-none transition-all font-black text-xs tracking-widest text-white" placeholder="NEURAL_ALIAS" required />
-                </div>
-              </div>
-              <div className="space-y-3">
-                <div className="relative">
-                  <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-600" />
-                  <input value={password} onChange={e => setPassword(e.target.value)} type="password" className="w-full bg-white/[0.03] border border-white/[0.08] rounded-3xl py-6 pl-16 pr-6 focus:border-indigo-500/50 outline-none transition-all font-black text-xs tracking-widest text-white" placeholder="DECRYPT_KEY" required />
-                </div>
-              </div>
-
-              {error && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-5 bg-red-500/5 border border-red-500/10 rounded-2xl text-red-500 text-[10px] font-black uppercase tracking-widest flex items-center gap-4"><AlertTriangle className="w-5 h-5" /> {error}</motion.div>}
-
-              <button type="submit" disabled={isLoadingAuth} className="w-full py-7 bg-indigo-600 hover:bg-indigo-500 text-white rounded-[2rem] font-black text-xl italic tracking-tighter shadow-[0_20px_60px_rgba(99,102,241,0.3)] flex items-center justify-center gap-6 transition-all active:scale-[0.97] disabled:opacity-50">
-                {isLoadingAuth ? <RefreshCw className="w-8 h-8 animate-spin" /> : <ShieldCheck className="w-8 h-8" />}
-                {isAuthMode === 'login' ? 'COMMENCE HANDSHAKE' : 'INIT PROTOCOL v8.0'}
-              </button>
-            </form>
-          </div>
-        </motion.div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-[#020308] text-white flex overflow-hidden font-sans selection:bg-indigo-500/40">
@@ -254,7 +154,7 @@ export default function App() {
 
           <div className="flex items-center gap-10">
             <div className="text-right flex flex-col items-end">
-              <span className="bg-white/5 px-4 py-1.5 rounded-full text-[10px] font-black tracking-widest text-indigo-400 border border-white/5 mb-2">{username.toUpperCase()}@DEEPGUARD</span>
+              <span className="bg-white/5 px-4 py-1.5 rounded-full text-[10px] font-black tracking-widest text-indigo-400 border border-white/5 mb-2">DEMO@DEEPGUARD</span>
               <p className="text-[11px] font-bold text-gray-500 flex items-center gap-2"><Globe className="w-3 h-3 text-emerald-500" /> SECURE_HOST_01</p>
             </div>
             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-4 bg-white/[0.03] border border-white/[0.05] rounded-2xl text-gray-500 hover:text-white transition-all backdrop-blur-xl">
