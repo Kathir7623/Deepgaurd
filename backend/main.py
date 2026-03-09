@@ -344,14 +344,14 @@ async def download_report(scan_id: int, db: Session = Depends(get_db), u: User =
 async def startup_event():
     db = SessionLocal()
     try:
-        admin = db.query(User).filter(User.username == "admin").first()
-        if not admin:
-            # Create default admin user
-            hashed_pw = hash_password("admin123")
-            db_admin = User(username="admin", hashed_password=hashed_pw)
-            db.add(db_admin)
+        demo = db.query(User).filter(User.username == "Demo").first()
+        if not demo:
+            # Create default demo user
+            hashed_pw = hash_password("Demo123")
+            db_demo = User(username="Demo", hashed_password=hashed_pw)
+            db.add(db_demo)
             db.commit()
-            print("Default admin user created: admin / admin123")
+            print("Default demo user created: Demo / Demo123")
     finally:
         db.close()
 

@@ -147,7 +147,7 @@ export default function App() {
             <p className="text-gray-600 font-bold uppercase tracking-[10px] text-[8px] opacity-70">EXA-CYBER FORENSIC ARCHITECTURE</p>
             {isAuthMode === 'login' && (
               <div className="mt-4 px-6 py-2 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl text-indigo-400 text-[10px] font-black tracking-widest uppercase inline-block">
-                AUTH_KEY: admin / admin123
+                AUTH_KEY: Demo / Demo123
               </div>
             )}
           </div>
