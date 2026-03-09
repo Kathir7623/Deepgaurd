@@ -209,7 +209,13 @@ class ForensicResult(BaseModel):
 # ROUTES
 # ---------------------------------------------------------
 app = FastAPI(title="DeepGuard v8.0 EXA-CYBER")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 DIRS = ["uploads", "reports", "tmp_img"]
 for d in DIRS: os.makedirs(d, exist_ok=True)
 
@@ -240,37 +246,51 @@ async def analyze(file: UploadFile = File(...), db: Session = Depends(get_db), u
     results: List[FaceAnalysis] = []
     spec_sum, text_sum = 0.0, 0.0
     
-    for i, (x, y, w, h) in enumerate(faces):
-        crop = img[max(0, y-20):y+h+20, max(0, x-20):x+w+20]
-        if crop.size == 0: continue
-        
-        # 1. Texture (LBP)
-        crop_g = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
-        lbp_map, t_score = analyze_texture_anomalies(crop_g)
-        text_sum += t_score
-        
-        # 2. Spectral (FFT)
-        f_map, s_score = analyze_spectral_footprint(crop_g)
-        spec_sum += s_score
-        
-        # 3. Spatial (DL)
-        input_t = transform(Image.fromarray(cv2.cvtColor(crop, cv2.COLOR_BGR2RGB))).unsqueeze(0).to(device)
-        input_t.requires_grad = True
-        with torch.no_grad(): out = model(input_t)
-        pred = out.item()
-        
-        # 4. Interpretability
-        hm = generate_heatmap(input_t, model)
-        hm_res = cv2.resize(hm, (crop.shape[1], crop.shape[0]))
-        overlay = cv2.addWeighted(crop, 0.5, cv2.applyColorMap(np.uint8(255 * hm_res), cv2.COLORMAP_JET), 0.5, 0)
+    print(f"DEBUG: Processing {len(faces)} faces...")
+    
+    try:
+        for i, (x, y, w, h) in enumerate(faces):
+            print(f"DEBUG: Analyzing face {i} at ({x}, {y}, {w}, {h})")
+            crop = img[max(0, y-20):y+h+20, max(0, x-20):x+w+20]
+            if crop.size == 0: continue
+            
+            # 1. Texture (LBP)
+            crop_g = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
+            lbp_map, t_score = analyze_texture_anomalies(crop_g)
+            text_sum += t_score
+            
+            # 2. Spectral (FFT)
+            f_map, s_score = analyze_spectral_footprint(crop_g)
+            spec_sum += s_score
+            
+            # 3. Spatial (DL)
+            input_t = transform(Image.fromarray(cv2.cvtColor(crop, cv2.COLOR_BGR2RGB))).unsqueeze(0).to(device)
+            input_t.requires_grad = True
+            
+            # Use local scope for grad
+            with torch.set_grad_enabled(True):
+                out = model(input_t)
+                pred = out.item()
+                
+                # 4. Interpretability
+                hm = generate_heatmap(input_t, model)
+                hm_res = cv2.resize(hm, (crop.shape[1], crop.shape[0]))
+                overlay = cv2.addWeighted(crop, 0.5, cv2.applyColorMap(np.uint8(255 * hm_res), cv2.COLORMAP_JET), 0.5, 0)
 
-        is_f = (pred > 0.5 or s_score > 75 or t_score > 70)
-        results.append(FaceAnalysis(
-            id=i, is_fake=is_f, spatial=round(pred * 100, 2),
-            spectral=round(s_score, 2), texture=round(t_score, 2),
-            heatmap=cv2_to_base64(overlay), fourier=cv2_to_base64(f_map),
-            position={"x": int(x), "y": int(y), "w": int(w), "h": int(h)}
-        ))
+            is_f = (pred > 0.5 or s_score > 75 or t_score > 70)
+            results.append(FaceAnalysis(
+                id=i, is_fake=is_f, spatial=round(pred * 100, 2),
+                spectral=round(s_score, 2), texture=round(t_score, 2),
+                heatmap=cv2_to_base64(overlay), fourier=cv2_to_base64(f_map),
+                position={"x": int(x), "y": int(y), "w": int(w), "h": int(h)}
+            ))
+            print(f"DEBUG: Face {i} analysis complete. Result: {is_f}")
+
+    except Exception as inner_e:
+        print(f"ERROR: Analysis failure - {str(inner_e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(500, f"Analysis Error: {str(inner_e)}")
 
     overall_f = any(f.is_fake for f in results)
     overall_c = max((f.spatial for f in results), default=0.0)

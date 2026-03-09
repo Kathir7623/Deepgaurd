@@ -3,7 +3,7 @@ import axios from 'axios';
 import {
   Upload, ShieldCheck, ShieldAlert, Activity, RefreshCw, AlertTriangle,
   LayoutDashboard, History, TrendingUp, Target,
-  Layers, Zap, Globe, Binary, Download, FileDigit, Fingerprint, Microscope, Dna
+  Layers, Zap, Globe, Binary, Download, FileDigit, Fingerprint, Microscope, Dna, Camera
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -48,6 +48,8 @@ export default function App() {
   const [, setError] = useState<string | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isWebcamActive, setIsWebcamActive] = useState(false);
 
   useEffect(() => {
     if (token) fetchGlobalData();
@@ -78,7 +80,39 @@ export default function App() {
       setFile(selectedFile);
       setPreview(URL.createObjectURL(selectedFile));
       setResult(null); setError(null); setLogs([]);
+      setIsWebcamActive(false);
     }
+  };
+
+  const toggleWebcam = async () => {
+    if (isWebcamActive) {
+      const stream = videoRef.current?.srcObject as MediaStream;
+      stream?.getTracks().forEach(t => t.stop());
+      setIsWebcamActive(false);
+    } else {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+        if (videoRef.current) videoRef.current.srcObject = stream;
+        setIsWebcamActive(true);
+        setFile(null); setPreview(null); setResult(null);
+      } catch (err) { console.error("Webcam Access Denied", err); }
+    }
+  };
+
+  const capturePhoto = () => {
+    if (!videoRef.current) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = videoRef.current.videoWidth;
+    canvas.height = videoRef.current.videoHeight;
+    canvas.getContext('2d')?.drawImage(videoRef.current, 0, 0);
+    canvas.toBlob((blob) => {
+      if (blob) {
+        const capturedFile = new File([blob], "live_capture.jpg", { type: "image/jpeg" });
+        setFile(capturedFile);
+        setPreview(URL.createObjectURL(capturedFile));
+        toggleWebcam(); // Close webcam after capture
+      }
+    }, 'image/jpeg');
   };
 
   const handleUpload = async () => {
@@ -318,14 +352,41 @@ export default function App() {
 
                 <div className="glass-panel p-2 rounded-[5rem] bg-white/[0.01] border border-white/[0.05] shadow-[0_0_100px_rgba(0,0,0,0.5)]">
                   <div className="p-16 space-y-16">
-                    {!file ? (
-                      <div onClick={() => fileInputRef.current?.click()} className="p-32 border-4 border-dashed border-white/[0.03] rounded-[4rem] flex flex-col items-center gap-12 hover:bg-white/[0.01] hover:border-indigo-500/20 transition-all cursor-pointer group relative overflow-hidden">
-                        <div className="p-16 bg-white/[0.03] rounded-[3.5rem] group-hover:scale-110 group-hover:-rotate-6 transition-all duration-1000 shadow-2xl relative z-10">
-                          <Upload className="w-20 h-20 text-indigo-400" />
+                    {!file && !isWebcamActive ? (
+                      <div className="space-y-12">
+                        <div onClick={() => fileInputRef.current?.click()} className="p-32 border-4 border-dashed border-white/[0.03] rounded-[4rem] flex flex-col items-center gap-12 hover:bg-white/[0.01] hover:border-indigo-500/20 transition-all cursor-pointer group relative overflow-hidden">
+                          <div className="p-16 bg-white/[0.03] rounded-[3.5rem] group-hover:scale-110 group-hover:-rotate-6 transition-all duration-1000 shadow-2xl relative z-10">
+                            <Upload className="w-20 h-20 text-indigo-400" />
+                          </div>
+                          <div className="text-center relative z-10 space-y-4">
+                            <h4 className="text-5xl font-black italic tracking-tighter">INGEST DATA MANIFOLD</h4>
+                            <p className="text-xs font-black uppercase tracking-[10px] text-gray-500">FORMATS: RAW / ISO / 4K_MP4 / PNG</p>
+                          </div>
                         </div>
-                        <div className="text-center relative z-10 space-y-4">
-                          <h4 className="text-5xl font-black italic tracking-tighter">INGEST DATA MANIFOLD</h4>
-                          <p className="text-xs font-black uppercase tracking-[10px] text-gray-500">FORMATS: RAW / ISO / 4K_MP4 / PNG</p>
+
+                        <div className="flex items-center gap-10">
+                          <div className="h-[1px] flex-1 bg-white/5" />
+                          <span className="text-[10px] font-black text-gray-600 tracking-[10px] uppercase">OR</span>
+                          <div className="h-[1px] flex-1 bg-white/5" />
+                        </div>
+
+                        <button onClick={toggleWebcam} className="w-full py-10 bg-indigo-500/10 border border-indigo-500/20 rounded-[3rem] flex items-center justify-center gap-6 hover:bg-indigo-500/20 transition-all group">
+                          <Camera className="w-8 h-8 text-indigo-400 group-hover:scale-110 transition-transform" />
+                          <span className="text-xl font-black italic tracking-tighter uppercase">ACTIVATE LIVE OPTIC PROBE</span>
+                        </button>
+                      </div>
+                    ) : isWebcamActive ? (
+                      <div className="space-y-12">
+                        <div className="relative rounded-[4rem] overflow-hidden aspect-video bg-black shadow-inner shadow-white/5 border border-white/5 ring-4 ring-white/[0.02]">
+                          <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover scale-[1.02]" />
+                          <div className="absolute top-10 left-10 flex items-center gap-4 px-6 py-2 bg-red-500 rounded-full animate-pulse">
+                            <div className="w-2 h-2 bg-white rounded-full" />
+                            <span className="text-[10px] font-black tracking-widest text-white uppercase">LIVE FEED</span>
+                          </div>
+                        </div>
+                        <div className="flex gap-8">
+                          <button onClick={capturePhoto} className="flex-1 py-10 bg-white text-black font-black text-xl italic tracking-tighter uppercase rounded-[2.5rem] hover:-translate-y-2 transition-all">CAPTURE MANIFOLD</button>
+                          <button onClick={toggleWebcam} className="px-12 py-10 bg-white/5 border border-white/10 font-black text-xs tracking-widest uppercase rounded-[2.5rem] hover:bg-white/10 transition-all text-gray-500 hover:text-white">ABORT</button>
                         </div>
                       </div>
                     ) : (
