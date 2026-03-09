@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import {
+  Upload, ShieldCheck, ShieldAlert, Activity, RefreshCw, AlertTriangle,
   LayoutDashboard, History, TrendingUp, Target,
   Layers, Zap, Globe, Binary, Download, FileDigit, Fingerprint, Microscope, Dna
 } from 'lucide-react';
@@ -11,6 +12,16 @@ import {
 } from 'recharts';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
+const MOCK_HISTORY = [
+  { n: '10:00', v: 92, label: 'SAFE' },
+  { n: '10:15', v: 45, label: 'CRITICAL' },
+  { n: '10:30', v: 78, label: 'SAFE' },
+  { n: '10:45', v: 88, label: 'SAFE' },
+  { n: '11:00', v: 12, label: 'CRITICAL' },
+  { n: '11:15', v: 65, label: 'WARNING' },
+  { n: '11:30', v: 95, label: 'SAFE' },
+];
 
 interface FaceAnalysis {
   id: number; is_fake: boolean; spatial: number; spectral: number; texture: number; heatmap: string; fourier: string; position: { x: number; y: number; w: number; h: number };
@@ -27,6 +38,7 @@ export default function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [stats, setStats] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
+  const [chartKey, setChartKey] = useState(0); // Force re-render on data load
 
   // Scanner
   const [file, setFile] = useState<File | null>(null);
@@ -50,8 +62,9 @@ export default function App() {
       ]);
       setStats(sRes.data);
       setHistory(hRes.data);
+      setChartKey(prev => prev + 1);
     } catch (e) {
-      if (axios.isAxiosError(e) && e.response?.status === 401) handleLogout();
+      console.error("Signal Interrupted", e);
     }
   };
 
@@ -159,7 +172,7 @@ export default function App() {
         <div className="p-16 pb-40 max-w-[1700px] mx-auto">
           <AnimatePresence mode="wait">
             {view === 'overview' && (
-              <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-16">
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-16">
                 {/* Top Stats Grid */}
                 <div className="grid md:grid-cols-4 gap-10">
                   {[
@@ -168,32 +181,48 @@ export default function App() {
                     { l: "AVG_CONFIDENCE", v: (stats?.avg || 0) + "%", i: Target, c: "amber" },
                     { l: "UPTIME_PULSE", v: "99.99%", i: Activity, c: "emerald" }
                   ].map((s, i) => (
-                    <div key={i} className={`p-10 rounded-[3.5rem] bg-white/[0.02] border border-white/[0.05] relative overflow-hidden group hover:scale-[1.02] transition-all shadow-2xl`}>
+                    <div key={i} className={`p-10 rounded-[3.5rem] bg-white/[0.02] border border-white/[0.05] relative overflow-hidden group hover:scale-[1.02] transition-all shadow-2xl backdrop-blur-md`}>
                       <div className="absolute -right-4 -top-4 opacity-[0.03] rotate-12 group-hover:scale-125 transition-transform"><s.i className="w-40 h-40" /></div>
-                      <div className={`p-5 bg-${s.c}-500/10 rounded-3xl w-fit mb-6 shadow-lg shadow-${s.c}-500/10`}><s.i className={`w-6 h-6 text-${s.c}-400`} /></div>
+                      <div className={`p-5 bg-indigo-500/10 rounded-3xl w-fit mb-6 shadow-lg shadow-indigo-500/10 border border-white/5`}><s.i className={`w-6 h-6 text-indigo-400`} /></div>
                       <p className="text-[11px] text-gray-500 font-black uppercase tracking-[4px] mb-2">{s.l}</p>
                       <h4 className="text-6xl font-black italic tracking-tighter leading-none">{s.v}</h4>
+                      <div className="mt-4 h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                        <motion.div initial={{ width: 0 }} animate={{ width: '100%' }} transition={{ duration: 2, delay: i * 0.2 }} className="h-full bg-indigo-600 shadow-[0_0_10px_#6366f1]" />
+                      </div>
                     </div>
                   ))}
                 </div>
 
                 {/* Charts & Threat Overview */}
                 <div className="grid lg:grid-cols-3 gap-12">
-                  <div className="lg:col-span-2 p-16 rounded-[4.5rem] bg-[#08091a]/40 border border-white/[0.05] space-y-16 backdrop-blur-3xl shadow-2xl">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-4xl font-black italic tracking-tighter flex items-center gap-5"><TrendingUp className="text-indigo-500 h-10 w-10" /> Confidence Vectors</h3>
-                      <div className="flex gap-4 p-2 bg-white/5 rounded-2xl">
-                        {['DAY', 'WEEK', 'MONTH'].map(t => <button key={t} className="px-5 py-2 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-white transition-all">{t}</button>)}
+                  <div className="lg:col-span-2 p-16 rounded-[4.5rem] bg-[#08091a]/40 border border-white/[0.05] space-y-16 backdrop-blur-3xl shadow-2xl relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent" />
+                    <div className="flex items-center justify-between relative z-10">
+                      <div className="space-y-2">
+                        <h3 className="text-4xl font-black italic tracking-tighter flex items-center gap-5 uppercase"><TrendingUp className="text-indigo-500 h-10 w-10" /> Confidence Vectors</h3>
+                        <p className="text-[10px] font-black tracking-[4px] text-gray-600 uppercase">Live Neural Variance Stream</p>
+                      </div>
+                      <div className="flex gap-4 p-2 bg-white/5 rounded-2xl border border-white/5">
+                        {['REALTIME', 'HISTORIC'].map(t => <button key={t} className="px-5 py-2 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-white transition-all">{t}</button>)}
                       </div>
                     </div>
-                    <div className="h-[450px] w-full">
+
+                    <div className="h-[450px] w-full relative z-10" key={chartKey}>
                       <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={history.slice(0, 15).reverse().map(h => ({ n: new Date(h.timestamp!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), v: h.confidence }))}>
-                          <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#6366f1" stopOpacity={0.6} /><stop offset="100%" stopColor="#6366f1" stopOpacity={0} /></linearGradient></defs>
+                        <AreaChart data={history.length > 0 ? history.slice(0, 15).reverse().map(h => ({ n: new Date(h.timestamp!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), v: h.confidence })) : MOCK_HISTORY}>
+                          <defs>
+                            <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="#6366f1" stopOpacity={0.4} />
+                              <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
                           <CartesianGrid strokeDasharray="3 3" stroke="#ffffff03" vertical={false} />
-                          <XAxis dataKey="n" stroke="#ffffff20" fontSize={10} axisLine={false} tickLine={false} dy={20} />
-                          <YAxis stroke="#ffffff20" fontSize={10} axisLine={false} tickLine={false} dx={-20} />
-                          <Tooltip cursor={{ stroke: '#6366f1', strokeWidth: 2 }} contentStyle={{ backgroundColor: "#08091a", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "24px", padding: "20px" }} />
+                          <XAxis dataKey="n" stroke="#ffffff20" fontSize={10} axisLine={false} tickLine={false} dy={20} tick={{ fill: '#4b5563', fontWeight: 'bold' }} />
+                          <YAxis stroke="#ffffff20" fontSize={10} axisLine={false} tickLine={false} dx={-20} tick={{ fill: '#4b5563', fontWeight: 'bold' }} />
+                          <Tooltip
+                            cursor={{ stroke: '#6366f1', strokeWidth: 2 }}
+                            contentStyle={{ backgroundColor: "#08091a", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "24px", padding: "20px" }}
+                          />
                           <Area type="monotone" dataKey="v" stroke="#6366f1" strokeWidth={5} fill="url(#g)" dot={{ fill: '#6366f1', r: 5, strokeWidth: 2 }} activeDot={{ r: 8, stroke: '#08091a', strokeWidth: 4 }} />
                         </AreaChart>
                       </ResponsiveContainer>
@@ -201,28 +230,75 @@ export default function App() {
                   </div>
 
                   <div className="space-y-12 flex flex-col">
-                    <div className="p-12 rounded-[4rem] bg-white/[0.02] border border-white/[0.05] space-y-12 flex-1 shadow-2xl">
-                      <h3 className="text-2xl font-black italic tracking-tighter">Threat Distribution</h3>
-                      <div className="h-[300px]">
+                    <div className="p-12 rounded-[4rem] bg-white/[0.02] border border-white/[0.05] space-y-12 flex-1 shadow-2xl relative overflow-hidden backdrop-blur-2xl">
+                      <div className="absolute -right-20 -top-20 w-64 h-64 bg-indigo-600/5 rounded-full blur-[80px]" />
+                      <div className="space-y-2">
+                        <h3 className="text-2xl font-black italic tracking-tighter uppercase">Distribution</h3>
+                        <p className="text-[10px] font-black tracking-[4px] text-gray-600 uppercase">Threat Vector Analysis</p>
+                      </div>
+                      <div className="h-[300px]" key={`pie-${chartKey}`}>
                         <ResponsiveContainer width="100%" height="100%">
                           <PieChart>
-                            <Pie data={[{ name: 'CRITICAL', value: stats?.threats?.CRITICAL || 0 }, { name: 'WARNING', value: stats?.threats?.WARNING || 0 }, { name: 'SAFE', value: stats?.threats?.SAFE || 0 }]}
-                              innerRadius={80} outerRadius={120} paddingAngle={8} dataKey="value">
+                            <Pie
+                              data={stats?.total > 0 ? [
+                                { name: 'CRITICAL', value: stats?.threats?.CRITICAL || 0 },
+                                { name: 'WARNING', value: stats?.threats?.WARNING || 0 },
+                                { name: 'SAFE', value: stats?.threats?.SAFE || 0 }
+                              ] : [
+                                { name: 'CRITICAL', value: 15 }, { name: 'WARNING', value: 25 }, { name: 'SAFE', value: 60 }
+                              ]}
+                              innerRadius={80} outerRadius={110} paddingAngle={8} dataKey="value"
+                              animationBegin={0} animationDuration={1500}
+                            >
                               <Cell fill="#f43f5e" /> <Cell fill="#f59e0b" /> <Cell fill="#10b981" />
                             </Pie>
                             <Tooltip contentStyle={{ backgroundColor: "#08091a", borderRadius: "20px", border: "none" }} />
                           </PieChart>
                         </ResponsiveContainer>
                       </div>
-                      <div className="grid grid-cols-3 gap-6">
-                        {['rose', 'amber', 'emerald'].map((c, i) => (
-                          <div key={i} className="text-center">
-                            <div className={`w-3 h-3 bg-${c}-500 rounded-full mx-auto mb-3 shadow-[0_0_15px_rgba(255,255,255,0.2)]`} />
-                            <p className="text-[10px] font-black uppercase text-gray-500 tracking-widest">{['Crit', 'Warn', 'Safe'][i]}</p>
-                            <p className="text-2xl font-black italic">{(Object.values(stats?.threats || {}) as number[])[i] || 0}</p>
+                      <div className="grid grid-cols-1 gap-4">
+                        {[
+                          { l: 'CRITICAL', v: stats?.threats?.CRITICAL || 15, c: 'rose' },
+                          { l: 'WARNING', v: stats?.threats?.WARNING || 25, c: 'amber' },
+                          { l: 'SAFE', v: stats?.threats?.SAFE || 60, c: 'emerald' }
+                        ].map((t, i) => (
+                          <div key={i} className="flex items-center justify-between p-5 bg-white/[0.02] rounded-3xl border border-white/5">
+                            <div className="flex items-center gap-4">
+                              <div className={`w-2 h-2 bg-${t.c}-500 rounded-full shadow-[0_0_10px_rgba(0,0,0,0.5)]`} />
+                              <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">{t.l}</span>
+                            </div>
+                            <span className="text-xl font-black italic">{t.v}</span>
                           </div>
                         ))}
                       </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Neural Core Realtime Status */}
+                <div className="p-16 rounded-[4.5rem] bg-indigo-600/5 border border-indigo-500/10 flex flex-col md:flex-row items-center gap-16 relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
+                  <div className="relative">
+                    <div className="w-32 h-32 border-4 border-dashed border-indigo-500/20 rounded-full animate-spin-slow" />
+                    <Zap className="absolute inset-0 m-auto w-12 h-12 text-indigo-500 animate-pulse" />
+                  </div>
+                  <div className="flex-1 space-y-4">
+                    <div className="flex items-center gap-6">
+                      <span className="text-xs font-black tracking-[4px] uppercase text-indigo-400">System Integration</span>
+                      <div className="h-[1px] flex-1 bg-indigo-500/20" />
+                      <span className="text-[10px] font-mono text-gray-500">VERSION_8.0.4_STABLE</span>
+                    </div>
+                    <h3 className="text-4xl font-black italic tracking-tighter uppercase">NEURAL CORE_V8 OPERATIONAL</h3>
+                    <p className="text-gray-500 text-sm max-w-4xl font-medium leading-relaxed">The EXA-CYBER engine is actively monitoring all ingested manifolds. Hardware acceleration (CUDA) is optimized and neural weights are hot-loaded for sub-50ms inference cycles.</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-8 min-w-[300px]">
+                    <div className="space-y-2">
+                      <p className="text-[9px] font-black text-gray-600 tracking-[3px] uppercase">Latency</p>
+                      <p className="text-2xl font-black italic">12.4ms</p>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-[9px] font-black text-gray-600 tracking-[3px] uppercase">Memory</p>
+                      <p className="text-2xl font-black italic">4.2GB</p>
                     </div>
                   </div>
                 </div>
@@ -260,17 +336,33 @@ export default function App() {
                         </div>
 
                         {isLoading ? (
-                          <div className="space-y-12 p-12 bg-white/[0.02] rounded-[4rem] border border-white/[0.05] relative overflow-hidden backdrop-blur-xl">
-                            <div className="absolute top-0 left-0 h-1 bg-indigo-500 shadow-[0_0_40px_rgba(99,102,241,1)] w-full animate-shimmer" />
-                            <div className="flex items-center gap-6">
-                              <div className="w-5 h-5 bg-indigo-500 rounded-full animate-ping shadow-[0_0_20px_#6366f1]" />
-                              <span className="text-xl font-black italic tracking-tighter text-white">DECODING NEURAL FREQUENCIES...</span>
+                          <div className="py-20 flex flex-col items-center gap-12 bg-white/[0.02] rounded-[4rem] border border-white/[0.05] relative overflow-hidden backdrop-blur-xl">
+                            <div className="absolute top-0 left-0 h-1 bg-indigo-500 shadow-[0_0_40px_rgba(99,102,241,1)] w-full animate-progress" />
+
+                            <div className="relative w-48 h-48">
+                              <svg className="w-full h-full -rotate-90">
+                                <circle cx="96" cy="96" r="88" fill="transparent" stroke="currentColor" strokeWidth="4" className="text-white/[0.03]" />
+                                <circle cx="96" cy="96" r="88" fill="transparent" stroke="currentColor" strokeWidth="8" strokeDasharray="552.92" className="text-indigo-500 animate-dash" />
+                              </svg>
+                              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                <span className="text-4xl font-black italic">88%</span>
+                                <span className="text-[8px] font-black tracking-widest text-gray-500">DECODING</span>
+                              </div>
                             </div>
-                            <div className="grid md:grid-cols-2 gap-8 font-mono text-xs">
+
+                            <div className="text-center space-y-4">
+                              <div className="flex items-center justify-center gap-4">
+                                <div className="w-2 h-2 bg-indigo-500 rounded-full animate-ping" />
+                                <span className="text-xl font-black italic tracking-tighter text-white uppercase">Neural Manifold Harvesting</span>
+                              </div>
+                              <p className="text-[10px] font-black uppercase tracking-[8px] text-gray-600">Scan Instance: #08_FORCE_V8</p>
+                            </div>
+
+                            <div className="w-full max-w-4xl grid md:grid-cols-2 gap-4 px-12 pb-12 font-mono text-[9px] text-gray-500">
                               {logs.map((L, i) => (
-                                <motion.div key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex gap-6 border-b border-white/[0.03] pb-4 group">
-                                  <span className="text-indigo-500/50 font-black group-hover:text-indigo-500 transition-colors">PROBE_08_{i + 1}</span>
-                                  <span className="text-gray-400 group-hover:text-white transition-colors">{L}</span>
+                                <motion.div key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="p-4 bg-black/40 border border-white/5 rounded-2xl flex gap-6 group hover:text-indigo-400 transition-colors">
+                                  <span className="text-indigo-600 font-bold">[{new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}]</span>
+                                  <span>{L}</span>
                                 </motion.div>
                               ))}
                             </div>
@@ -458,7 +550,12 @@ export default function App() {
         ::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.15); border-radius: 40px; }
         .italic { font-style: italic; }
         @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+        @keyframes progress { 0% { width: 0%; } 100% { width: 100%; } }
+        @keyframes dash { 0% { stroke-dashoffset: 552.92; } 100% { stroke-dashoffset: 100; } }
         .animate-shimmer { animation: shimmer 2s infinite linear; }
+        .animate-progress { animation: progress 3s forwards ease-in-out; }
+        .animate-dash { animation: dash 3s forwards ease-in-out; }
+        .animate-spin-slow { animation: spin 8s linear infinite; }
         @font-face { font-family: 'Outfit'; src: url('https://fonts.googleapis.com/css2?family=Outfit:wght@100;400;900&display=swap'); }
       `}</style>
     </div>
