@@ -392,7 +392,7 @@ export default function App() {
                     ) : (
                       <div className="space-y-20">
                         <div className="relative rounded-[4rem] overflow-hidden aspect-video bg-black shadow-inner shadow-white/5 border border-white/5 ring-4 ring-white/[0.02] group">
-                          {preview && (file.type.startsWith('video') ? <video src={preview} className="w-full h-full object-cover" controls /> : <img src={preview} className="w-full h-full object-cover scale-[1.02] brightness-90 group-hover:scale-105 transition-transform duration-[2000ms]" alt="" />)}
+                          {preview && (file?.type?.startsWith('video') ? <video src={preview} className="w-full h-full object-cover" controls /> : <img src={preview} className="w-full h-full object-cover scale-[1.02] brightness-90 group-hover:scale-105 transition-transform duration-[2000ms]" alt="" />)}
                           {!isLoading && !result && <button onClick={() => setFile(null)} className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-3xl"><RefreshCw className="w-20 h-20 stroke-1" /></button>}
                         </div>
 
