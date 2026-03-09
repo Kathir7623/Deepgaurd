@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import {
-  Upload, ShieldCheck, ShieldAlert, Activity, RefreshCw, Database, AlertTriangle,
+  Upload, ShieldCheck, ShieldAlert, Activity, RefreshCw, AlertTriangle,
   LayoutDashboard, History, LogOut, TrendingUp, Target,
   Layers, Zap, Globe, Binary, Download, FileDigit, Fingerprint, Microscope, Dna
 } from 'lucide-react';
@@ -22,8 +22,7 @@ interface ForensicResult {
 }
 
 export default function App() {
-  const [token, setToken] = useState<string | null>("BYPASS_AUTH");
-  const [isAuthMode, setIsAuthMode] = useState<'login' | 'register'>('login');
+  const [token] = useState<string | null>("BYPASS_AUTH");
 
   const [view, setView] = useState<'overview' | 'scanner' | 'history' | 'tech'>('overview');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -35,7 +34,7 @@ export default function App() {
   const [preview, setPreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<ForensicResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [, setError] = useState<string | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -60,7 +59,7 @@ export default function App() {
   const addLog = (msg: string) => setLogs(prev => [...prev.slice(-4), msg]);
 
 
-  const handleLogout = () => { setToken(null); setView('overview'); };
+  const handleLogout = () => { setView('overview'); };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
