@@ -1,8 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import {
-  Upload, ShieldCheck, ShieldAlert, Activity, RefreshCw, AlertTriangle,
-  LayoutDashboard, History, LogOut, TrendingUp, Target,
+  LayoutDashboard, History, TrendingUp, Target,
   Layers, Zap, Globe, Binary, Download, FileDigit, Fingerprint, Microscope, Dna
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -59,7 +58,6 @@ export default function App() {
   const addLog = (msg: string) => setLogs(prev => [...prev.slice(-4), msg]);
 
 
-  const handleLogout = () => { setView('overview'); };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -134,10 +132,6 @@ export default function App() {
               <span className="text-xs font-bold text-gray-400">ISO-27001-V8</span>
             </div>
           </div>}
-          <button onClick={handleLogout} className="w-full h-16 flex items-center justify-center gap-4 bg-red-600/[0.02] hover:bg-red-600/10 text-gray-500 hover:text-red-500 border border-white/[0.03] rounded-3xl transition-all group overflow-hidden">
-            <LogOut className="w-5 h-5 flex-shrink-0 group-hover:translate-x-1 transition-transform" />
-            {isSidebarOpen && <span className="text-[10px] font-black uppercase tracking-[4px]">Eject</span>}
-          </button>
         </div>
       </motion.aside>
 
